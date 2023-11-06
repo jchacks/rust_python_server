@@ -11,13 +11,13 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use tokio::{signal, task};
 
-#[derive(Clone)]
-struct PyModel(Arc<Py<PyAny>>);
+// Investigate exposing a "PyModel" rust struct
+struct PyModel(Py<PyAny>);
 
 #[derive(Clone)]
 struct AppState {
     // that holds some api specific state
-    model_call: PyModel,
+    model_call: Arc<PyModel>,
 }
 
 #[derive(Deserialize)]
@@ -36,7 +36,7 @@ fn init() -> AppState {
     })
     .unwrap();
     AppState {
-        model_call: PyModel(Arc::new(model_call)),
+        model_call: Arc::new(PyModel(model_call)),
     }
 }
 
