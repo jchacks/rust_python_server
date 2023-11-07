@@ -1,7 +1,5 @@
-import time
 from typing import Optional
 from example.model import Model
-import traceback
 
 MODEL: Optional[Model] = None
 
@@ -16,15 +14,16 @@ def load_model(path: str):
 
 
 def run_model(data: dict):
-    # Modify sharedmem to illustrate thread safety
-    s = time.time()
-    i = 0
-    while time.time() - s < 0.1:
-        prediction = MODEL.predict(data)
-        i += 1
-    print(i)
-    return {"status": "Success", "prediction": prediction}
+    return MODEL.predict(data)
 
 
 if __name__ == "__main__":
-    load_model("./example/model.pkl")
+    import timeit
+    number = 10
+    res = timeit.timeit(
+        'run_model({"features": [6.1, 2.8, 4.7, 1.2]})',
+        setup='load_model("model.pkl")',
+        globals=globals(),
+        number=number,
+    )
+    print(res / number)

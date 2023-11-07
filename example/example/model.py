@@ -1,5 +1,5 @@
 import pickle
-
+import time
 from xgboost import XGBClassifier
 
 
@@ -10,10 +10,16 @@ class Model:
 
     def fit(self, X_train, y_train):
         self.clf.fit(X_train, y_train)
+        self.clf._Booster.set_param("nthread", 1)
 
     def predict(self, data: dict) -> dict:
-        y = self.predict_raw(data["features"])
-        return self.target_names[y]
+        # Make the prediction larger to increase the latency.
+        s = time.time()
+        y = self.predict_raw([data["features"]])
+        while time.time() - s < 0.1:
+            # Spin out of control
+            pass
+        return self.target_names[y][0]
 
     def predict_raw(self, value):
         return self.clf.predict(value)

@@ -19,6 +19,6 @@ if __name__ == "__main__":
     model = Model(target_names)
     model.fit(X_train, y_train)
 
-    y_pred = model.predict({"features": X_test})
+    y_pred = model.predict({"features": X_test[0]})
     print(y_pred)
     model.save()

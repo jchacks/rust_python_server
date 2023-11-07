@@ -1,18 +1,14 @@
-use axum::{
-    extract::{FromRef, State},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
-};
-use pyo3::prelude::*;
+use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
 use pyo3::types::PyList;
+use pyo3::{prelude::*, types::PyDict};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::sync::Arc;
+use tokio::sync::Semaphore;
 use tokio::{signal, task};
 
-// Investigate exposing a "PyModel" rust struct
+static PERMITS: Semaphore = Semaphore::const_new(100);
+
 struct PyModel(Py<PyAny>);
 
 #[derive(Clone)]
@@ -21,16 +17,29 @@ struct AppState {
     model_call: Arc<PyModel>,
 }
 
-#[derive(Deserialize)]
-struct InvocationRequest {}
+#[derive(Deserialize, Debug, Clone)]
+struct InvocationRequest {
+    features: Vec<f32>,
+}
 
 #[derive(Serialize)]
-struct InvocationResponse {}
+enum InvocationResponse {
+    Error(String),
+    Success(InvocationSuccessResponse),
+}
+
+#[derive(Serialize)]
+struct InvocationSuccessResponse {
+    prediction: String,
+}
 
 fn init(model_path: &str) -> AppState {
     pyo3::prepare_freethreaded_python();
-    let py_model = fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/example/example/predict.py"))
-        .expect("Could not read predict.py");
+    let py_model = fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/example/example/predict.py"
+    ))
+    .expect("Could not read predict.py");
     let module_path = concat!(env!("CARGO_MANIFEST_DIR"), "/example");
 
     let model_call: Py<PyAny> = Python::with_gil(|py| {
@@ -56,23 +65,59 @@ fn init(model_path: &str) -> AppState {
 }
 
 // basic handler that responds with a static string
-async fn invoke(State(api_state): State<AppState>) -> &'static str {
-    let val = task::spawn_blocking(move || {
-        Python::with_gil(|py| api_state.model_call.0.call(py, (1, 2), None)).unwrap()
+async fn invoke(
+    State(api_state): State<AppState>,
+    Json(invocation_request): Json<InvocationRequest>,
+) -> (StatusCode, Json<InvocationResponse>) {
+    let permit = PERMITS.acquire();
+    let handle = task::spawn_blocking(move || {
+        Python::with_gil(|py| {
+            // Construct input dict
+            let data = PyDict::new(py);
+            data.set_item("features", invocation_request.features)?;
+
+            // Call model and extract string from response
+            api_state
+                .model_call
+                .0
+                .call(py, (data,), None)?
+                .extract::<String>(py)
+        })
     })
-    .await
-    .unwrap();
-    println!("rust invoked model {}", val);
-    "Success"
+    .await;
+    drop(permit);
+
+    match handle {
+        Ok(res) => match res {
+            Ok(val) => (
+                StatusCode::OK,
+                Json(InvocationResponse::Success(InvocationSuccessResponse {
+                    prediction: val,
+                })),
+            ),
+            Err(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(InvocationResponse::Error(err.to_string())),
+            ),
+        },
+        Err(err) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(InvocationResponse::Error(err.to_string())),
+        ),
+    }
 }
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .init();
+
     let state = init("model.pkl");
 
     // build our application with a route
     let app = Router::new()
-        .route("/invoke", get(invoke))
+        .route("/invoke", post(invoke))
         .with_state(state);
 
     // run our app with hyper, listening globally on port 3000
