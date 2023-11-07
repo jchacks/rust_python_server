@@ -1,5 +1,5 @@
 from flask import Flask, request
-from model import run_model
+from example.predict import run_model
 
 
 app = Flask(__name__)

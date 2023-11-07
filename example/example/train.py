@@ -2,7 +2,7 @@
 
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
-from model import Model
+from example.model import Model
 
 
 if __name__ == "__main__":

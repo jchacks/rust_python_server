@@ -1,6 +1,6 @@
 import time
 from typing import Optional
-from train import Model
+from example.model import Model
 import traceback
 
 MODEL: Optional[Model] = None
@@ -8,14 +8,10 @@ MODEL: Optional[Model] = None
 
 def load_model(path: str):
     print("PYTHON: calling load_model")
-    try:
-        global MODEL
-        MODEL = Model.load(path)
-        print(MODEL)
-        assert hasattr(MODEL, "predict")
-    except Exception as e:
-        print(e)
-        traceback.print_exc()
+    global MODEL
+    MODEL = Model.load(path)
+    print(MODEL)
+    assert hasattr(MODEL, "predict")
     print("PYTHON: loaded model")
 
 

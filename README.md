@@ -20,7 +20,10 @@ To test the server using locust:
 ```bash
 python3.10 -m venv .venv
 source .venv/bin/activate
-pip install flask locust numpy
+pip install -e ./example
+
+# Create model.pkl
+python -m example.train
 
 # Boot server
 cargo run -r

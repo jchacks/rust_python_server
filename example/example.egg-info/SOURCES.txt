@@ -1,0 +1,12 @@
+pyproject.toml
+example/__init__.py
+example/app.py
+example/locustfile.py
+example/model.py
+example/predict.py
+example/train.py
+example.egg-info/PKG-INFO
+example.egg-info/SOURCES.txt
+example.egg-info/dependency_links.txt
+example.egg-info/requires.txt
+example.egg-info/top_level.txt

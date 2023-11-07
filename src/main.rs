@@ -29,8 +29,8 @@ struct InvocationResponse {}
 
 fn init(model_path: &str) -> AppState {
     pyo3::prepare_freethreaded_python();
-    let py_model = fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/example/predict.py"))
-        .expect("Could not read model.py");
+    let py_model = fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/example/example/predict.py"))
+        .expect("Could not read predict.py");
     let module_path = concat!(env!("CARGO_MANIFEST_DIR"), "/example");
 
     let model_call: Py<PyAny> = Python::with_gil(|py| {
@@ -68,7 +68,7 @@ async fn invoke(State(api_state): State<AppState>) -> &'static str {
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
-    let state = init("example/model.pkl");
+    let state = init("model.pkl");
 
     // build our application with a route
     let app = Router::new()
