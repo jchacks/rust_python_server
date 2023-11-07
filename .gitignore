@@ -1,7 +1,7 @@
 # python
 .venv
 */__pycache__/
+*.pkl
 
 # rust
-
 /target

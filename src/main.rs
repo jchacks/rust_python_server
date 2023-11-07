@@ -1,6 +1,3 @@
-use pyo3::prelude::*;
-use std::sync::Arc;
-
 use axum::{
     extract::{FromRef, State},
     http::StatusCode,
@@ -8,7 +5,11 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use pyo3::prelude::*;
+use pyo3::types::PyList;
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::sync::Arc;
 use tokio::{signal, task};
 
 // Investigate exposing a "PyModel" rust struct
@@ -26,11 +27,25 @@ struct InvocationRequest {}
 #[derive(Serialize)]
 struct InvocationResponse {}
 
-fn init() -> AppState {
+fn init(model_path: &str) -> AppState {
     pyo3::prepare_freethreaded_python();
-    let py_model = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/example/model.py"));
+    let py_model = fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/example/predict.py"))
+        .expect("Could not read model.py");
+    let module_path = concat!(env!("CARGO_MANIFEST_DIR"), "/example");
+
     let model_call: Py<PyAny> = Python::with_gil(|py| {
-        let model: Py<PyAny> = PyModule::from_code(py, py_model, "", "")?.into();
+        // Add the example module to the path
+        let syspath: &PyList = py.import("sys")?.getattr("path")?.downcast()?;
+        syspath.insert(0, module_path)?;
+        println!("Inserted module in path {}", module_path);
+
+        let model: Py<PyAny> = PyModule::from_code(py, &py_model, "", "")?.into();
+        println!("Loaded model module");
+
+        // Load the model into global scope
+        model.getattr(py, "load_model")?.call1(py, (model_path,))?;
+        println!("Loaded model object");
+
         let model_call = model.getattr(py, "run_model")?;
         PyResult::Ok(model_call)
     })
@@ -53,7 +68,7 @@ async fn invoke(State(api_state): State<AppState>) -> &'static str {
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
-    let state = init();
+    let state = init("example/model.pkl");
 
     // build our application with a route
     let app = Router::new()
