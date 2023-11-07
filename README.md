@@ -42,7 +42,7 @@ python -m example.train
 cargo run -r
 
 # Test using locust
-cd example && locust
+locust -H http://localhost:3000
 ```
 
 ## Python Baseline
