@@ -64,7 +64,6 @@ fn init(model_path: &str) -> AppState {
     }
 }
 
-// basic handler that responds with a static string
 async fn invoke(
     State(api_state): State<AppState>,
     Json(invocation_request): Json<InvocationRequest>,
