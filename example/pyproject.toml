@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 name = "example"
 description = "example model"
 version = "0.1.0"
-dependencies = [ "locust","flask","scikit-learn","xgboost" ]
+dependencies = [ "locust", "flask", "scikit-learn", "xgboost", "treelite", "gunicorn" ]
 
 [tool.setuptools]
 packages = ["example"]

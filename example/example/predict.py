@@ -1,13 +1,13 @@
 from typing import Optional
-from example.model import Model
+from example.model import Model, InferenceModel
 
-MODEL: Optional[Model] = None
+MODEL: Optional[InferenceModel] = None
 
 
 def load_model(path: str):
     print("PYTHON: calling load_model")
     global MODEL
-    MODEL = Model.load(path)
+    MODEL = InferenceModel.from_model(Model.load(path))
     print(MODEL)
     assert hasattr(MODEL, "predict")
     print("PYTHON: loaded model")

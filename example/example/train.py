@@ -2,7 +2,7 @@
 
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
-from example.model import Model
+from example.model import Model, InferenceModel
 
 
 if __name__ == "__main__":
@@ -22,3 +22,5 @@ if __name__ == "__main__":
     y_pred = model.predict({"features": X_test[0]})
     print(y_pred)
     model.save()
+    model = InferenceModel.from_model(model)
+    model.predict({"features": X_test[0]})

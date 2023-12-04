@@ -2,8 +2,6 @@
 
 Experiments wrapping a python callable in a rust axum webserver.
 
-Note: Fun experiments but it doesnt really help due to GIL constraints.
-
 
 ## Introduction
 
@@ -11,11 +9,11 @@ A toy model located in `example/example/model.py` runs XGBoost.
 
 Rust Axum Web Server loads the python module and exposes the function at `/invoke`.  
 
-The python function needs to be thread safe, depending on how intensive the python function is and how the GIL is handled can affect the benchmarks, for example using `time.sleep` as a proxy for "cpu work" is not great as the GIL is released for the whole time sleeping.  A bare loop `while time.time() - start < 0.1: pass` is also not representative of invoking python libraries which might release the GIL during their operation.  Repeated XGBoost invocatons also scale very badly, not sure of the cause of this.
+The python function needs to be thread safe, depending on how intensive the python function is and how the GIL is handled can affect the benchmarks, for example using `time.sleep` as a proxy for "cpu work" is not great as the GIL is released for the whole time sleeping.  A bare loop `while time.time() - start < 0.1: pass` is also not representative of invoking python libraries which might release the GIL during their operation.  Repeated XGBoost invocatons also scale very badly, not sure of the root cause.
 
 ## Testing 
 
-Useful to check the endpoint with curl:
+Useful to check the endpoint with `curl`:
 
 ```bash
 $ curl --header "Content-Type: application/json" \
@@ -26,9 +24,7 @@ $ curl --header "Content-Type: application/json" \
 {"Success":{"prediction":"versicolor"}}
 ```
 
-## Rust
-
-To test the server using locust:
+## Create model
 
 ```bash
 python3.10 -m venv .venv
@@ -36,8 +32,14 @@ source .venv/bin/activate
 pip install -e ./example
 
 # Create model.pkl
-python -m example.train
+.venv/bin/python -m example.train
+```
 
+## Rust
+
+To test the server using locust:
+
+```bash
 # Boot server
 cargo run -r
 
@@ -47,4 +49,10 @@ locust -H http://localhost:3000
 
 ## Python Baseline
 
-WIP: Add a flask application to compare.
+```bash
+# Boot server
+gunicorn -w 8 -b localhost:3000 'example.app:app'
+
+# Test using locust
+locust -H http://localhost:3000
+```

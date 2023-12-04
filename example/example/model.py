@@ -1,5 +1,6 @@
 import pickle
-import time
+import treelite
+import numpy as np
 from xgboost import XGBClassifier
 
 
@@ -14,11 +15,7 @@ class Model:
 
     def predict(self, data: dict) -> dict:
         # Make the prediction larger to increase the latency.
-        s = time.time()
         y = self.predict_raw([data["features"]])
-        while time.time() - s < 0.1:
-            # Spin out of control
-            pass
         return self.target_names[y][0]
 
     def predict_raw(self, value):
@@ -34,3 +31,19 @@ class Model:
             model = pickle.load(fp)
         assert isinstance(model, cls)
         return model
+
+
+class InferenceModel:
+    def __init__(self, target_names, model):
+        self.model = model
+        self.target_names = target_names
+
+    def predict(self, data: dict) -> dict:
+        features = np.array([data["features"]])
+        y = treelite.gtil.predict(self.model, features)
+        return self.target_names[np.argmax(y)]
+
+    @classmethod
+    def from_model(cls, model: Model):
+        tlite = treelite.frontend.from_xgboost(model.clf._Booster)
+        return cls(model.target_names, tlite)
