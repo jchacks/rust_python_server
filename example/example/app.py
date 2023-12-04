@@ -1,12 +1,14 @@
 from flask import Flask, request
 from example.predict import run_model, load_model
 
-load_model("model.pkl")
 
-app = Flask(__name__)
+def create_app():
+    app = Flask(__name__)
+    load_model("model.pkl")
 
-@app.post("/invoke")
-def invoke():
-    data = request.get_json()
-    return run_model(data)
+    @app.post("/invoke")
+    def invoke():
+        data = request.get_json()
+        return run_model(data)
 
+    return app

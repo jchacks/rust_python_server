@@ -51,7 +51,7 @@ locust -H http://localhost:3000
 
 ```bash
 # Boot server
-gunicorn -w 8 -b localhost:3000 'example.app:app'
+gunicorn -w 8 -b localhost:3000 'example.app:create_app()'
 
 # Test using locust
 locust -H http://localhost:3000
