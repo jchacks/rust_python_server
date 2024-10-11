@@ -1,3 +1,4 @@
+use axum::response::IntoResponse;
 use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
 use pyo3::types::PyList;
 use pyo3::{prelude::*, types::PyDict};
@@ -106,6 +107,10 @@ async fn invoke(
     }
 }
 
+async fn handler_404() -> impl IntoResponse {
+    (StatusCode::NOT_FOUND, "Not Found!")
+}
+
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
     tracing_subscriber::fmt()
@@ -118,6 +123,8 @@ async fn main() {
     let app = Router::new()
         .route("/invoke", post(invoke))
         .with_state(state);
+
+    let app = app.fallback(handler_404);
 
     // run our app with hyper, listening globally on port 3000
     axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
